@@ -1,0 +1,7 @@
+# Originais baixados do Instagram e anotações locais: não vão para o repositório público
+_instagram-originais/
+_backup-*/
+site-publicar/
+.claude/
+.env.local
+__pycache__/
