@@ -24,6 +24,35 @@
     });
   }
 
+  // Submenu "Tratamentos": abre no clique (celular e teclado); no computador também abre ao passar o mouse.
+  document.querySelectorAll('.sub').forEach(function (sub) {
+    var b = sub.querySelector('.sub-btn');
+    b.addEventListener('click', function (e) {
+      e.stopPropagation();
+      var aberto = sub.classList.toggle('aberto');
+      b.setAttribute('aria-expanded', aberto ? 'true' : 'false');
+    });
+  });
+  document.addEventListener('click', function (e) {
+    if (window.innerWidth <= 1000) return;   // no celular o submenu fica dentro do menu aberto
+    document.querySelectorAll('.sub.aberto').forEach(function (s) {
+      if (!s.contains(e.target)) { s.classList.remove('aberto'); s.querySelector('.sub-btn').setAttribute('aria-expanded', 'false'); }
+    });
+  });
+  var fechaSubs = function (devolveFoco) {
+    document.querySelectorAll('.sub.aberto').forEach(function (s) {
+      var b = s.querySelector('.sub-btn');
+      s.classList.remove('aberto'); b.setAttribute('aria-expanded', 'false');
+      if (devolveFoco) b.focus(); else b.blur();
+    });
+  };
+  window.addEventListener('scroll', function () { if (window.innerWidth > 1000) fechaSubs(false); }, { passive: true });
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape') return;
+    fechaSubs(true);
+    if (menu && menu.classList.contains('aberto')) { menu.classList.remove('aberto'); btn.setAttribute('aria-expanded', 'false'); btn.focus(); }
+  });
+
   // Cabeçalho ganha sombra ao rolar; WhatsApp flutuante aparece depois do topo.
   var onScroll = function () {
     var y = window.scrollY;
@@ -57,7 +86,7 @@
   }
 
   // Foto do topo: movimento leve ao rolar (só em telas largas).
-  var heroImg = document.querySelector('.heroi .foto img');
+  var heroImg = document.querySelector('.heroi .foto img, .pagina-foto img');
   if (heroImg && window.matchMedia('(min-width: 961px)').matches) {
     var ticking = false;
     window.addEventListener('scroll', function () {
@@ -74,7 +103,7 @@
   // Entrada suave do que está abaixo da dobra. Só esconde depois de confirmar que o navegador
   // desenha quadros (requestAnimationFrame); se não desenhar, tudo fica visível, sem animação.
   if ('IntersectionObserver' in window) requestAnimationFrame(function () {
-    var els = document.querySelectorAll('.revela, .cartao, .passo, .depo, .galeria .foto, .faq details');
+    var els = document.querySelectorAll('.revela, .cartao, .caminho, .trat, .valor, .passo, .depo, .galeria .foto, .faq details, .duas > *, .sobre .foto, .cabeca, .aviso-parceria');
     var io = new IntersectionObserver(function (entries) {
       entries.forEach(function (e) {
         if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
