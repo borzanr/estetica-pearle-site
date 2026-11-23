@@ -74,32 +74,8 @@
   });
   document.querySelectorAll('[data-ano]').forEach(function (el) { el.textContent = hoje.getFullYear(); });
 
-  // Nota e número de avaliações vindos da planilha do Google que a Eliana edita.
-  // Se a planilha não responder ou trouxer algo estranho, fica o valor que já está na página.
-  var meta = document.querySelector('meta[name="pearle-dados"]');
-  var teste = /[?&]dados=([^&]+)/.exec(location.search);      // só para testar: ?dados=/teste.csv
-  var csvUrl = teste ? decodeURIComponent(teste[1]) : (meta && meta.content);
-  if (csvUrl && window.fetch) {
-    fetch(csvUrl, { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (txt) {
-      var dados = {};
-      txt.split(/\r?\n/).forEach(function (linha) {
-        var m = /^\s*"?([^",]+)"?\s*,\s*"?([^"]*)"?\s*$/.exec(linha);
-        if (m) dados[m[1].trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')] = m[2].trim();
-      });
-      var av = (dados.avaliacoes || '').replace(/\D/g, '');
-      if (av && +av > 0 && +av < 100000) {
-        document.querySelectorAll('[data-campo="avaliacoes"]').forEach(function (el) {
-          el.textContent = av;
-          if (el.hasAttribute('data-count')) el.setAttribute('data-count', av);
-        });
-      }
-      var nota = parseFloat((dados.nota || '').replace(',', '.'));
-      if (nota >= 1 && nota <= 5) {
-        var txtNota = nota.toFixed(1).replace('.', ',');
-        document.querySelectorAll('[data-campo="nota"]').forEach(function (el) { el.textContent = txtNota; });
-      }
-    }).catch(function () {});
-  }
+  // Nota e número de avaliações do Google: já vêm escritos no HTML pela rotina diária
+  // (tools/atualizar_google.py + build), sem leitura extra ao abrir a página.
 
   if (calm) { root.classList.add('semanim'); return; }
 

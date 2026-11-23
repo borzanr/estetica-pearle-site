@@ -44,12 +44,10 @@ SITE = {
     "instagram_handle": "@estetica.pearle",
     "tiktok": "https://www.tiktok.com/@estetica.pearle",
     "google_reviews": "https://www.google.com/maps/place/?q=place_id:0x94ce55c6d02dd891:0x3e83868478eccdca",
-    # Valores de reserva: o site mostra estes e, se houver planilha, troca pelos dela ao abrir a página.
+    # Nota e avaliações vêm de src/dados.json (atualizado todo dia pela rotina do GitHub,
+    # tools/atualizar_google.py). Estes são só a reserva se o arquivo faltar.
     "rating": "5,0",
     "reviews": "51",
-    # Planilha do Google publicada como CSV (Arquivo > Compartilhar > Publicar na Web > CSV).
-    # Colunas: campo,valor — linhas "nota" e "avaliacoes". Vazio = usa os valores acima.
-    "planilha_csv": "",
     # Datas de início (ano-mês) para calcular os anos sozinho. Mês a confirmar com a Eliana.
     "inicio_profissao": "2004-01",
     "inicio_pearle": "2021-08",
@@ -57,7 +55,13 @@ SITE = {
     "preview_url": "https://esteticapearle.borzanti.com",
 }
 
-WA_DEFAULT = "Olá, Eliana! Vi o site da Pearle e gostaria de agendar uma avaliação."
+_dados = SRC / "dados.json"
+if _dados.exists():
+    _d = json.loads(_dados.read_text(encoding="utf-8"))
+    SITE["rating"] = f"{float(_d['nota']):.1f}".replace(".", ",")
+    SITE["reviews"] = str(int(_d["avaliacoes"]))
+
+WA_DEFAULT ="Olá, Eliana! Vi o site da Pearle e gostaria de agendar uma avaliação."
 
 # (slug, rótulo, submenu)
 NAV = [
@@ -292,7 +296,6 @@ class Build:
         slug = meta.get("slug", "")
         url = self.base + ("/" if slug in ("", "404") else self.href(slug))
         title, desc = self.texto(meta["title"]), self.texto(meta["description"])
-        dados = f'<meta name="pearle-dados" content="{esc(SITE["planilha_csv"])}">\n' if SITE["planilha_csv"] else ""
         robots = "" if self.prod and slug != "404" else '<meta name="robots" content="noindex, nofollow">\n'
         pre = meta.get("preload", "")
         pre = f'<link rel="preload" as="image" href="{pre}" fetchpriority="high">\n' if pre else ""
@@ -304,7 +307,7 @@ class Build:
 <script>if(location.search.indexOf('semanim')<0)requestAnimationFrame(function(){{document.documentElement.classList.add('anim')}})</script>
 <title>{esc(title)}</title>
 <meta name="description" content="{esc(desc)}">
-{robots}{dados}<link rel="canonical" href="{url}">
+{robots}<link rel="canonical" href="{url}">
 <meta property="og:type" content="website">
 <meta property="og:locale" content="pt_BR">
 <meta property="og:site_name" content="{SITE['name']}">

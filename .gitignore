@@ -5,3 +5,9 @@ site-publicar/
 .claude/
 .env.local
 __pycache__/
+
+# Credenciais locais: nunca vão para o repositório
+places-api.txt
+*.key
+*-api*.txt
+.env*
