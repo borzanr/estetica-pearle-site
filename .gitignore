@@ -11,3 +11,7 @@ places-api.txt
 *.key
 *-api*.txt
 .env*
+
+# Relatório para a apresentação (interno)
+_relatorio/
+Relatorio-Site-Pearle.pdf
