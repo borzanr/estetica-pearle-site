@@ -44,8 +44,15 @@ SITE = {
     "instagram_handle": "@estetica.pearle",
     "tiktok": "https://www.tiktok.com/@estetica.pearle",
     "google_reviews": "https://www.google.com/maps/place/?q=place_id:0x94ce55c6d02dd891:0x3e83868478eccdca",
+    # Valores de reserva: o site mostra estes e, se houver planilha, troca pelos dela ao abrir a página.
     "rating": "5,0",
     "reviews": "51",
+    # Planilha do Google publicada como CSV (Arquivo > Compartilhar > Publicar na Web > CSV).
+    # Colunas: campo,valor — linhas "nota" e "avaliacoes". Vazio = usa os valores acima.
+    "planilha_csv": "",
+    # Datas de início (ano-mês) para calcular os anos sozinho. Mês a confirmar com a Eliana.
+    "inicio_profissao": "2004-01",
+    "inicio_pearle": "2021-08",
     "prod_url": "https://esteticapearle.borzanti.com",   # trocar pelo domínio oficial quando houver
     "preview_url": "https://esteticapearle.borzanti.com",
 }
@@ -102,6 +109,24 @@ def write(p: Path, s: str) -> None:
     p.write_text(s, encoding="utf-8", newline="\n")
 
 
+def anos_desde(inicio: str, hoje: date | None = None) -> int:
+    """Anos completos desde "AAAA-MM" (vira no mês do aniversário)."""
+    hoje = hoje or date.today()
+    a, m = (int(x) for x in inicio.split("-"))
+    return hoje.year - a - (1 if hoje.month < m else 0)
+
+
+def numeros() -> dict:
+    """Números que mudam com o tempo, em texto puro (para título, descrição e Google)."""
+    return {
+        "anos_exp": str(anos_desde(SITE["inicio_profissao"])),
+        "anos_pearle": str(anos_desde(SITE["inicio_pearle"])),
+        "ano": str(date.today().year),
+        "rating": SITE["rating"],
+        "reviews": SITE["reviews"],
+    }
+
+
 def front_matter(text: str) -> tuple[dict, str]:
     m = re.match(r"^---\s*\n(.*?)\n---\s*\n", text, re.S)
     if not m:
@@ -132,7 +157,7 @@ class Build:
   <div class="wrap">
     <div class="depo-topo">
       <div><span class="selo">Quem já é cliente</span><h2>O carinho de quem <em>volta sempre</em></h2></div>
-      <div class="nota-google"><strong>{SITE['rating']}</strong><div><span class="estrelas">★★★★★</span><br><span data-count="{SITE['reviews']}">{SITE['reviews']}</span> avaliações no Google</div></div>
+      <div class="nota-google"><strong data-campo="nota">{esc(SITE['rating'])}</strong><div><span class="estrelas">★★★★★</span><br><span data-campo="avaliacoes" data-count="{esc(SITE['reviews'])}">{esc(SITE['reviews'])}</span> avaliações no Google</div></div>
     </div>
     <div class="depos">{figs}</div>
     <p class="nota"><a href="{esc(SITE['google_reviews'])}" target="_blank" rel="noopener">Ler todas as avaliações no Google</a></p>
@@ -173,10 +198,26 @@ class Build:
                 return self.endereco()
             if key == "horario":
                 return self.horario()
-            if key == "year":
-                return str(date.today().year)
+            # Números vivos: o gerador escreve o valor de hoje e o site.js confere ao abrir a página.
+            n = numeros()
+            if key == "anos_exp":
+                return f'<span data-desde="{SITE["inicio_profissao"]}">{n["anos_exp"]}</span>'
+            if key == "anos_pearle":
+                return f'<span data-desde="{SITE["inicio_pearle"]}">{n["anos_pearle"]}</span>'
+            if key in ("ano", "year"):
+                return f'<span data-ano>{n["ano"]}</span>'
+            if key == "rating":
+                return f'<span data-campo="nota">{esc(n["rating"])}</span>'
+            if key == "reviews":
+                return f'<span data-campo="avaliacoes">{esc(n["reviews"])}</span>'
             return esc(str(SITE[key]))
         return re.sub(r"\{\{([a-z0-9_]+(?::[^}]*)?)\}\}", rep, body)
+
+    @staticmethod
+    def texto(s: str) -> str:
+        """Troca {{anos_exp}} e afins por texto puro (título e descrição não aceitam HTML)."""
+        n = numeros()
+        return re.sub(r"\{\{([a-z_]+)\}\}", lambda m: n.get(m.group(1), m.group(0)), s)
 
     # ---- moldura da página ----------------------------------------------------
     def jsonld(self) -> str:
@@ -250,7 +291,8 @@ class Build:
     def page(self, meta: dict, body: str) -> str:
         slug = meta.get("slug", "")
         url = self.base + ("/" if slug in ("", "404") else self.href(slug))
-        title, desc = meta["title"], meta["description"]
+        title, desc = self.texto(meta["title"]), self.texto(meta["description"])
+        dados = f'<meta name="pearle-dados" content="{esc(SITE["planilha_csv"])}">\n' if SITE["planilha_csv"] else ""
         robots = "" if self.prod and slug != "404" else '<meta name="robots" content="noindex, nofollow">\n'
         pre = meta.get("preload", "")
         pre = f'<link rel="preload" as="image" href="{pre}" fetchpriority="high">\n' if pre else ""
@@ -262,7 +304,7 @@ class Build:
 <script>if(location.search.indexOf('semanim')<0)requestAnimationFrame(function(){{document.documentElement.classList.add('anim')}})</script>
 <title>{esc(title)}</title>
 <meta name="description" content="{esc(desc)}">
-{robots}<link rel="canonical" href="{url}">
+{robots}{dados}<link rel="canonical" href="{url}">
 <meta property="og:type" content="website">
 <meta property="og:locale" content="pt_BR">
 <meta property="og:site_name" content="{SITE['name']}">
