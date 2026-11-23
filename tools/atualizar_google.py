@@ -68,6 +68,7 @@ def main() -> None:
     args = ap.parse_args()
 
     dados = ler_dados()
+    novo_id = False
     if args.simular:
         resp = json.loads(Path(args.simular).read_text(encoding="utf-8"))
     else:
@@ -75,8 +76,10 @@ def main() -> None:
         if not chave:
             aviso("PLACES_API_KEY não configurada: números do Google não atualizados.")
             return
-        pid = dados.get("place_id") or descobrir_place_id(chave)
-        dados["place_id"] = pid
+        pid = dados.get("place_id")
+        if not pid:   # descobre uma vez e guarda, para as próximas execuções não buscarem de novo
+            pid = dados["place_id"] = descobrir_place_id(chave)
+            novo_id = True
         resp = chamar(f"https://places.googleapis.com/v1/places/{pid}", chave,
                       "displayName,rating,userRatingCount")
 
@@ -92,7 +95,7 @@ def main() -> None:
     mes = date.today().strftime("%Y-%m")
     # Grava quando os números mudam, ou uma vez por mês (mantém a rotina ativa no GitHub,
     # que desliga rotinas de repositórios sem nenhum commit por 60 dias).
-    if mudou or dados.get("verificado_em") != mes:
+    if mudou or novo_id or dados.get("verificado_em") != mes:
         if mudou:
             dados["atualizado_em"] = date.today().isoformat()
         dados.update(novo)
